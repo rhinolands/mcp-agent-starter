@@ -1,0 +1,11 @@
+[project]
+name = "mcp-agent-starter"
+version = "0.1.0"
+description = "Minimal MCP server demonstrating an enterprise agent security model: per-agent least privilege, audit, and human-confirm gates on writes."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
