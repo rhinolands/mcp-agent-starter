@@ -2,6 +2,8 @@
 
 A **minimal MCP server** that shows the security model an enterprise agent platform needs — in code you can read in one sitting.
 
+![Security model: an agent tool call hits a default-deny policy gate (policy.require); allowed reads run directly, allowed writes go through a two-step human-confirm gate (propose_write stages a token, confirm_write applies it), denials fail closed, and every call — allow or deny — is appended to audit.log as JSON.](docs/architecture.svg)
+
 Most "MCP server" examples expose tools with no guardrails. In production the hard part isn't the tool, it's **what an agent is allowed to do with it**. This starter bakes in three patterns:
 
 | Pattern | Where | What it buys you |
