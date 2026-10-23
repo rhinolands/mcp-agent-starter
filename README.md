@@ -2,15 +2,15 @@
 
 A **minimal MCP server** that shows the security model an enterprise agent platform needs — in code you can read in one sitting.
 
-![Security model: an agent tool call hits a default-deny policy gate (policy.require); allowed reads run directly, allowed writes go through a two-step human-confirm gate (propose_write stages a token, confirm_write applies it), denials fail closed, and every call — allow or deny — is appended to audit.log as JSON.](docs/architecture.svg)
+![Security model: an agent tool call hits a default-deny policy gate (policy.require); allowed reads run directly, allowed writes go through a two-step confirm gate (propose_write stages a token, confirm_write applies it), denials fail closed, and every call — allow or deny — is appended to audit.log as JSON.](docs/architecture.svg)
 
 Most "MCP server" examples expose tools with no guardrails. In production the hard part isn't the tool, it's **what an agent is allowed to do with it**. This starter bakes in three patterns:
 
 | Pattern | Where | What it buys you |
 |---|---|---|
 | **Per-agent least privilege** | `policy.require()` | Tools declare a capability; calls are **default-deny**. An agent only does what it was scoped to. |
-| **Audit** | `policy.audit()` | Every call — allowed *and* denied — is appended to `audit.log` as JSON. Probing leaves a trail. |
-| **Human-confirm gate on writes** | `propose_write` → `confirm_write` | A mutating tool **stages** the change and returns a token; an explicit second call applies it. No one-step unreviewable mutation. |
+| **Audit** | `policy.audit()` | Every call, allowed or denied, is appended to `audit.log` as JSON. Probing leaves a trail. If the log cannot be written, the call still runs. |
+| **Two-step gate on writes** | `propose_write` → `confirm_write` | A mutating tool **stages** the change and returns a token. A second, separate call applies it. Both steps are audited. |
 
 ## Tools
 
@@ -24,9 +24,11 @@ Most "MCP server" examples expose tools with no guardrails. In production the ha
 ## Run
 
 ```bash
-pip install mcp
-python server.py        # stdio MCP server
+pip install "mcp>=1.0,<2"   # server.py uses FastMCP from the 1.x SDK
+python server.py            # stdio MCP server
 ```
+
+The 2.x SDK renamed FastMCP, so a plain `pip install mcp` gives a server that does not start.
 
 Connect from Claude Desktop — add to `claude_desktop_config.json`:
 
@@ -44,6 +46,23 @@ Connect from Claude Desktop — add to `claude_desktop_config.json`:
 - Call `confirm_write("<token>")` → now it applies. Two steps, both audited.
 - Remove `"kb.write"` from `GRANTED` in `policy.py` → write tools now **fail closed** with `Denied`, and the attempt is logged.
 - `tail -f audit.log` while you work to watch the trail.
+
+## The confirm step is not proof of a human
+
+The agent holds `kb.write`, so it can call `confirm_write` itself.
+The gate makes every change two audited calls. It does not prove a person made the second one.
+To keep a person in the loop, have the client ask for approval before `confirm_write` runs.
+Or do not offer `confirm_write` to the agent at all.
+
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+ruff check . && ruff format --check .
+```
+
+CI runs these plus a gitleaks scan over every commit.
 
 ## Why default-deny
 
