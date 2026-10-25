@@ -1,14 +1,14 @@
 # mcp-agent-starter
 
-A **minimal MCP server** that shows the security model an enterprise agent platform needs — in code you can read in one sitting.
+A **minimal MCP server** that shows the security model an enterprise agent platform needs. The code fits in one sitting.
 
-![Security model: an agent tool call hits a default-deny policy gate (policy.require); allowed reads run directly, allowed writes go through a two-step confirm gate (propose_write stages a token, confirm_write applies it), denials fail closed, and every call — allow or deny — is appended to audit.log as JSON.](docs/architecture.svg)
+![Security model: an agent tool call hits a default-deny policy gate (policy.require). Allowed reads run directly. Allowed writes go through a two-step confirm gate (propose_write stages a token, confirm_write applies it). Denials fail closed. Every call, allow or deny, is appended to audit.log as JSON.](docs/architecture.svg)
 
-Most "MCP server" examples expose tools with no guardrails. In production the hard part isn't the tool, it's **what an agent is allowed to do with it**. This starter bakes in three patterns:
+Most "MCP server" examples expose tools with no guardrails. In production the hard part isn't the tool. It is **what an agent is allowed to do with it**. This starter bakes in three patterns:
 
 | Pattern | Where | What it buys you |
 |---|---|---|
-| **Per-agent least privilege** | `policy.require()` | Tools declare a capability; calls are **default-deny**. An agent only does what it was scoped to. |
+| **Least privilege by capability** | `policy.require()` | Each tool declares a capability. Calls are **default-deny**. The server holds one granted set (`GRANTED` in `policy.py`), so every client of this server gets the same grants. |
 | **Audit** | `policy.audit()` | Every call, allowed or denied, is appended to `audit.log` as JSON. Probing leaves a trail. If the log cannot be written, the call still runs. |
 | **Two-step gate on writes** | `propose_write` → `confirm_write` | A mutating tool **stages** the change and returns a token. A second, separate call applies it. Both steps are audited. |
 
@@ -30,7 +30,7 @@ python server.py            # stdio MCP server
 
 The 2.x SDK renamed FastMCP, so a plain `pip install mcp` gives a server that does not start.
 
-Connect from Claude Desktop — add to `claude_desktop_config.json`:
+Connect from Claude Desktop. Add this to `claude_desktop_config.json`:
 
 ```json
 {
@@ -66,8 +66,13 @@ CI runs these plus a gitleaks scan over every commit.
 
 ## Why default-deny
 
-`require()` raises **before** the tool body runs. Add a tool, declare its capability, done — you can't accidentally ship an ungoverned tool, and the deny path is audited just like the allow path.
+`require()` raises **before** the tool body runs. The deny path is audited just like the allow path. A new tool is governed only if its first line calls `require()`. Nothing checks that for you.
+
+## Not built
+
+- **Per-agent grants.** `GRANTED` is one set for the whole server process. A platform would load it from the caller's identity.
+- **Token expiry.** A staged write waits until it is confirmed or the server restarts.
 
 ---
 
-By **Gustavo Norymberg** — AI & Agentic Platform Architect. A teaching reference, not a framework. [LinkedIn](https://www.linkedin.com/in/gustavonorymberg)
+By **Gustavo Norymberg**, AI & Agentic Platform Architect. A teaching reference, not a framework. [LinkedIn](https://www.linkedin.com/in/gustavonorymberg)

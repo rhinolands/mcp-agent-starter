@@ -3,7 +3,7 @@
 Demonstrates three patterns every production agent platform needs, in code you
 can read in one sitting:
 
-  1. Per-agent least privilege   — tools declare a capability; default-deny.
+  1. Least privilege             — tools declare a capability; default-deny.
   2. Audit                        — every tool call is logged append-only.
   3. Two-step gate on writes     — a mutating tool stages the change and
                                     returns a token; a second, explicit call
