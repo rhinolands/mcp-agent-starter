@@ -3,12 +3,13 @@
 Demonstrates three patterns every production agent platform needs, in code you
 can read in one sitting:
 
-  1. Per-agent least privilege   — tools declare a capability; default-deny.
+  1. Least privilege             — tools declare a capability; default-deny.
   2. Audit                        — every tool call is logged append-only.
-  3. Human-confirm gate on writes — a mutating tool stages the change and
+  3. Two-step gate on writes     — a mutating tool stages the change and
                                     returns a token; a second, explicit call
-                                    applies it. The agent can never mutate in
-                                    one unreviewable step.
+                                    applies it. The same grant can make both
+                                    calls, so a human approval has to come
+                                    from the client.
 
 Run as a stdio MCP server:
 
@@ -61,8 +62,7 @@ def get_status() -> str:
 def propose_write(key: str, value: str) -> str:
     """Stage a change to the knowledge base. Does NOT apply it.
 
-    Returns a confirmation token; an operator must call ``confirm_write(token)``
-    to apply. Requires capability `kb.write`.
+    Returns a confirmation token; ``confirm_write(token)`` applies it. Requires capability `kb.write`.
     """
     require("kb.write")
     token = secrets.token_hex(8)
@@ -79,13 +79,13 @@ def propose_write(key: str, value: str) -> str:
 def confirm_write(token: str) -> str:
     """Apply a previously proposed change. Requires capability `kb.write`.
 
-    The two-step gate keeps a mutating action human-in-the-loop and fully
-    audited: nothing changes until this explicit second call.
+    Nothing changes until this explicit second call, and both calls are
+    audited. Any caller with `kb.write` can make it; see README.
     """
     require("kb.write")
     if token not in _PENDING:
         audit("confirm_write", token=token, result="unknown-token")
-        return "unknown or expired token — nothing applied"
+        return "unknown token — nothing applied"
     key, value = _PENDING.pop(token)
     _KB[key] = value
     audit("confirm_write", token=token, key=key, result="applied")

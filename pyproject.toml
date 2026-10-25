@@ -1,11 +1,25 @@
 [project]
 name = "mcp-agent-starter"
 version = "0.1.0"
-description = "Minimal MCP server demonstrating an enterprise agent security model: per-agent least privilege, audit, and human-confirm gates on writes."
+description = "Minimal MCP server demonstrating an enterprise agent security model: default-deny capabilities, audit, and a two-step confirm gate on writes."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["mcp>=1.0"]
+# server.py uses FastMCP from the 1.x SDK. mcp 2.x renamed it.
+dependencies = ["mcp>=1.0,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["server.py", "policy.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff.lint]
+extend-select = ["I"]
